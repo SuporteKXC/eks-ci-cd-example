@@ -1,0 +1,40 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+      - apt update -y
+      - apt install jq -y
+      - apt install unzip -y
+      - apt install git -y
+      - apt install git-flow -y
+      - curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl
+      - chmod +x ./kubectl
+      - mv ./kubectl /usr/local/bin/kubectl
+
+  pre_build:
+    commands:
+      - mkdir $project_path
+      - git clone https://$git_user:$git_pass@bitbucket.org/$git_project $project_path/
+      - cd $project_path
+      - git checkout $branch
+      - VERSION=$(git rev-parse --short HEAD)
+      - ACCOUNT_ID=$account_id
+      - BRANCH=$branch
+      - DOMAIN=$domain
+      - CLUSTER=$cluster
+      - NAMESPACE=$namespace
+
+  build:
+    commands:
+      - docker login --username $docker_login --password $docker_pass
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
+      - export NODE_OPTIONS="--max_old_space_size=14336"
+      - docker build -t $ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/$project_path:$VERSION --build-arg ACCOUNT_ID=$ACCOUNT_ID .
+      - docker push $ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/$project_path:$VERSION
+      - aws eks update-kubeconfig --region us-east-1 --name $CLUSTER --role-arn arn:aws:iam::$ACCOUNT_ID:role/EksCodeBuildkubectlRole
+      - cat k8s-deployment.yml | envsubst | kubectl apply -f -
+  post_build:
+    commands:
+      - echo "Deploy '${BRANCH}':'${VERSION}', in  DOMAIN:'${DOMAIN}'  '${CLUSTER}':'${ACCOUNT_ID}' finished"
