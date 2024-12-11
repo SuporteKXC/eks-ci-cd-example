@@ -16,7 +16,9 @@ No arquivo buildspec.yaml, temos:<br />
 ```bash
 docker build -t $ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/$project_path:$VERSION --build-arg ACCOUNT_ID=$ACCOUNT_ID .
 ```
-Que faz o build da Dockerfile, colocando a tag de acordo com o hash do commit feito.<br />
+Que faz o build da Dockerfile, colocando a tag de acordo com o hash do commit feito.
+<br />
+<br />
 
 Após feito o build e push para o ECR:
 ```bash
